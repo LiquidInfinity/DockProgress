@@ -3,57 +3,72 @@ import DockProgress
 
 @MainActor
 final class AppState {
+	private(set) var isRunning = false
+	private var timer: Timer?
+
+	private let styles: [DockProgress.Style] = [
+		.bar,
+		.squircle(color: .gray),
+		.circle(radius: 30, color: .white),
+		.badge(color: .blue) { Int(DockProgress.displayedProgress * 12) },
+		.pie(color: .blue),
+		.customView { progress in
+			CustomView(progress: progress)
+		}
+	]
+
+	private var stylesIterator: IndexingIterator<[DockProgress.Style]>?
+
 	init() {
-		DispatchQueue.main.async { [self] in
-			didLaunch()
-		}
+		stylesIterator = styles.makeIterator()
 	}
 
-	private func didLaunch() {
-		runExample()
-	}
-
-	private func runExample() {
+	func setUp() {
 		borrowIconFromApp("com.apple.Photos")
+	}
 
-		let styles: [DockProgress.Style] = [
-			.bar,
-			.squircle(color: .gray),
-			.circle(radius: 30, color: .white),
-			.badge(color: .blue) { Int(DockProgress.displayedProgress * 12) },
-			.pie(color: .blue),
-			.customView { progress in
-				CustomView(progress: progress)
-			}
-		]
-
-		var stylesIterator = styles.makeIterator()
-
-		func advanceToNextStyle() {
-			if let style = stylesIterator.next() {
-				DockProgress.resetProgress()
-				DockProgress.style = style
-				return
-			}
-
-			stylesIterator = styles.makeIterator()
-
-			if let style = stylesIterator.next() {
-				DockProgress.resetProgress()
-				DockProgress.style = style
-			}
+	func start() {
+		guard !isRunning else {
+			return
 		}
 
+		isRunning = true
 		advanceToNextStyle()
 
-		Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-			Task { @MainActor in
+		timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+			Task { @MainActor [weak self] in
+				guard let self, isRunning else {
+					return
+				}
+
 				if DockProgress.displayedProgress >= 1 {
 					advanceToNextStyle()
 				}
 
 				DockProgress.progress = min(DockProgress.progress + 0.2, 1)
 			}
+		}
+	}
+
+	func stop() {
+		isRunning = false
+		timer?.invalidate()
+		timer = nil
+		DockProgress.resetProgress()
+	}
+
+	private func advanceToNextStyle() {
+		if let style = stylesIterator?.next() {
+			DockProgress.resetProgress()
+			DockProgress.style = style
+			return
+		}
+
+		stylesIterator = styles.makeIterator()
+
+		if let style = stylesIterator?.next() {
+			DockProgress.resetProgress()
+			DockProgress.style = style
 		}
 	}
 
@@ -65,7 +80,6 @@ final class AppState {
 		let icon = NSWorkspace.shared.icon(forFile: appURL.path)
 		icon.size = CGSize(width: 128, height: 128)
 
-		// Reduce flicker by checking if icon actually changed
 		if NSApp.applicationIconImage != icon {
 			NSApp.applicationIconImage = icon
 		}

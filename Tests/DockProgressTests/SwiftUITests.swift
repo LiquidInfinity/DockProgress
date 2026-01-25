@@ -258,4 +258,20 @@ struct DockProgressTests {
 		DockProgress.progress = 0.65
 		#expect(DockProgress.progress == 0.65)
 	}
+
+	@Test("View modifier exists and compiles")
+	func dockProgressModifier() {
+		// This test verifies the view modifier API compiles correctly
+		struct TestView: View {
+			var body: some View {
+				Text("Test")
+					.dockProgress(0.5)
+					.dockProgress(0.75, style: .bar)
+					.dockProgress(nil, resetsOnDisappear: false)
+			}
+		}
+
+		// If this compiles, the API is correct
+		_ = TestView()
+	}
 }

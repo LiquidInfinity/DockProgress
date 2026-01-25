@@ -42,6 +42,29 @@ DockProgress.progressInstance = progress
 
 The given `Progress` instance is weakly stored. It's up to you to retain it.
 
+### Use in SwiftUI
+
+```swift
+import SwiftUI
+import DockProgress
+
+struct ContentView: View {
+	@State private var progress = 0.0
+
+	var body: some View {
+		VStack {
+			ProgressView(value: progress)
+			Button("Start") {
+				progress = 0.5
+			}
+		}
+		.dockProgress(progress)
+	}
+}
+```
+
+Pass `nil` to reset the progress. By default, progress resets when the view disappears.
+
 ## Styles
 
 Includes built-in styles (bar, squircle, circle, badge, pie) plus support for custom styles using SwiftUI views or Canvas drawing.
